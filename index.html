@@ -65,6 +65,11 @@
         .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
         .chart-card { background: white; border-radius: 16px; padding: 20px; height: 320px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; }
 
+        /* Footer Link */
+        .footer-link-section { margin-top: 60px; padding-top: 30px; border-top: 1px solid #e2e8f0; text-align: center; padding-bottom: 20px; }
+        .external-link-btn { display: inline-flex; align-items: center; gap: 8px; background: #475569; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.3s; }
+        .external-link-btn:hover { background: #334155; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
         @media (max-width: 900px) {
             .kpi-grid { grid-template-columns: 1fr 1fr; }
             .split-layout { grid-template-columns: 1fr; }
@@ -147,6 +152,12 @@
             </div>
         </div>
     </div>
+
+    <div class="footer-link-section">
+        <a href="https://redpoints-dash-rherhkqf.manus.space/" target="_blank" class="external-link-btn">
+            🌐 前往 Red Points 進階儀表板
+        </a>
+    </div>
 </div>
 
 <script>
@@ -154,7 +165,6 @@
     Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
     Chart.defaults.color = '#94a3b8';
     
-    // 顏色修正：第一色改為深紅 #c0565b
     const pastelColors = ['#c0565b', '#2a9d8f', '#e9c46a', '#264653', '#f4a261', '#8ab17d'];
     const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
     let globalData = null;
@@ -248,7 +258,6 @@
         document.getElementById('kpi-impact').textContent = data.impact[idx] || 0;
     }
 
-    // --- 保持原摘要格式 ---
     function generateInsights(data, idx) {
         document.getElementById('insightSection').style.display = 'block';
         document.getElementById('insightMonthTitle').textContent = `【本月觀察重點 - ${months[idx]}】`;
@@ -262,7 +271,6 @@
         let totalType = countCounterfeit + countAbuse;
         let percentCounterfeit = totalType > 0 ? ((countCounterfeit / totalType) * 100).toFixed(1) : 0;
         
-        // 此處格式完全依照您的截圖要求
         document.getElementById('insightContent').innerHTML = `
             <span class="highlight-text">"${top1.name}"</span> 與 <span class="highlight-text">"${top2.name}"</span> 
             仍為主要侵權對象，分別達 <span class="highlight-num">${top1.val}</span> 件 與 <span class="highlight-num">${top2.val}</span> 件。<br>
@@ -294,7 +302,7 @@
     function renderCharts(data, lastIdx) {
         const labels = months.slice(0, lastIdx + 1);
 
-        // 1. 偵測與下架量走勢 (方案二：折線)
+        // 1. 偵測與下架量對比 (雙折線)
         if(charts.trend) charts.trend.destroy();
         charts.trend = new Chart(document.getElementById('trendChart'), {
             type: 'line',
@@ -348,7 +356,6 @@
             }
         });
 
-        // 類型圓餅圖
         if(charts.types) charts.types.destroy();
         charts.types = new Chart(document.getElementById('typeChart'), {
             type: 'doughnut',
@@ -362,7 +369,6 @@
             options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { datalabels: { display: false }, legend: { position: 'right' } } }
         });
 
-        // 網域排行
         if(charts.domain) charts.domain.destroy();
         charts.domain = new Chart(document.getElementById('domainChart'), {
             type: 'bar',
@@ -373,7 +379,6 @@
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
         });
 
-        // 侵權資產圖
         if(charts.assets) charts.assets.destroy();
         let assetDatasets = []; let c = 0;
         for(let [k, v] of Object.entries(data.assets)) {
