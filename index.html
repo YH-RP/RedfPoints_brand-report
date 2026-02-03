@@ -130,7 +130,20 @@
     </div>
 
     <div class="section-box" style="margin-top: 40px;">
-        <div class="section-title" style="margin-bottom:20px;">4. 執行效能趨勢 (年度走勢)</div>
+        <div class="section-title" style="margin-bottom:20px;">4. 侵權資產分析 (趨勢與明細)</div>
+        <div class="assets-container">
+            <div class="chart-area"><canvas id="assetsChart"></canvas></div>
+            <div style="overflow-x:auto;">
+                <table class="custom-table" id="assetTable">
+                    <thead><tr id="assetTableHeader"><th>資產名稱</th></tr></thead>
+                    <tbody id="assetTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-box">
+        <div class="section-title" style="margin-bottom:20px;">5. 執行效能趨勢 (年度走勢)</div>
         <div class="split-layout">
             <div class="chart-card">
                 <div style="font-size:14px; font-weight:bold; margin-bottom:10px; color:var(--secondary);">偵測與下架量走勢</div>
@@ -143,23 +156,10 @@
         </div>
     </div>
 
-    <div class="section-box">
-        <div class="section-title" style="margin-bottom:20px;">5. 侵權資產分析 (趨勢與明細)</div>
-        <div class="assets-container">
-            <div class="chart-area"><canvas id="assetsChart"></canvas></div>
-            <div style="overflow-x:auto;">
-                <table class="custom-table" id="assetTable">
-                    <thead><tr id="assetTableHeader"><th>資產名稱</th></tr></thead>
-                    <tbody id="assetTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <div class="footer-link-section">
         <div class="footer-btn-group">
             <a href="https://redpoints-dash-rherhkqf.manus.space/" target="_blank" class="external-link-btn">
-                📊 Red Points 2025 
+                📊 Red Points 2025
             </a>
             <a href="https://yh-rp.github.io/red-points-intro/" target="_blank" class="external-link-btn secondary">
                 📖 Red Points 網域及流程
@@ -169,7 +169,6 @@
 </div>
 
 <script>
-    // JS 部分與先前提供的完全相同，包含雙折線圖與 DataLabels 設定
     Chart.register(ChartDataLabels);
     Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
     Chart.defaults.color = '#94a3b8';
