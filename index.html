@@ -125,7 +125,7 @@
         <div class="section-title" style="margin-bottom:20px;">4. 執行效能趨勢 (年度走勢)</div>
         <div class="split-layout">
             <div class="chart-card">
-                <div style="font-size:14px; font-weight:bold; margin-bottom:10px; color:var(--secondary);">偵測與下架量對比</div>
+                <div style="font-size:14px; font-weight:bold; margin-bottom:10px; color:var(--secondary);">偵測與下架量走勢</div>
                 <div style="height:250px;"><canvas id="trendChart"></canvas></div>
             </div>
             <div class="chart-card">
@@ -150,18 +150,16 @@
 </div>
 
 <script>
-    // --- Config ---
-    Chart.register(ChartDataLabels); // 註冊數據標籤插件
+    Chart.register(ChartDataLabels);
     Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
     Chart.defaults.color = '#94a3b8';
     
-    // 修正顏色：第一個改為深紅 #c0565b
+    // 顏色修正：第一色改為深紅 #c0565b
     const pastelColors = ['#c0565b', '#2a9d8f', '#e9c46a', '#264653', '#f4a261', '#8ab17d'];
     const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
     let globalData = null;
     let charts = {};
 
-    // --- Events ---
     document.getElementById('csvInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if(!file) return;
@@ -187,7 +185,6 @@
         const lines = csvText.split(/\r\n|\n/);
         let section = null;
         let data = { detected:[], removed:[], unable:[], rate:[], impact:[], assets:{}, types:{}, domains:[] };
-
         lines.forEach(line => {
             if(!line.trim()) return;
             const cols = line.split(',');
@@ -195,11 +192,9 @@
             if(line.includes("侵權資產")) { section = "Assets"; return; }
             if(line.includes("保護類型")) { section = "Types"; return; }
             if(line.includes("網域活動")) { section = "Domains"; return; }
-
             const getVals = () => cols.slice(1, 13).map(v => {
                 let n = parseFloat(v.toString().replace('%','')); return isNaN(n) ? null : n;
             });
-
             if(section === "KPI") {
                 const vals = getVals();
                 if(line.includes("偵測數量")) data.detected = vals;
@@ -229,7 +224,6 @@
         data.detected.forEach((v, i) => { if(v !== null) indices.push(i); });
         const lastIdx = indices[indices.length - 1] || 0;
         document.getElementById('statusText').textContent = `來源: ${filename} (至 ${months[lastIdx]})`;
-        
         const sel = document.getElementById('monthSelect');
         sel.innerHTML = '';
         indices.forEach(i => {
@@ -239,7 +233,6 @@
         });
         sel.value = lastIdx;
         sel.style.display = 'block';
-
         renderKPI(data, lastIdx);
         generateInsights(data, lastIdx);
         renderAssetTable(data, lastIdx);
@@ -255,6 +248,7 @@
         document.getElementById('kpi-impact').textContent = data.impact[idx] || 0;
     }
 
+    // --- 保持原摘要格式 ---
     function generateInsights(data, idx) {
         document.getElementById('insightSection').style.display = 'block';
         document.getElementById('insightMonthTitle').textContent = `【本月觀察重點 - ${months[idx]}】`;
@@ -263,13 +257,18 @@
         assetList.sort((a, b) => b.val - a.val);
         const top1 = assetList[0] || { name: '無', val: 0 };
         const top2 = assetList[1] || { name: '無', val: 0 };
-        const countCounterfeit = (data.types['Counterfeit'] && data.types['Counterfeit'][idx]) || 0;
-        const total = countCounterfeit + ((data.types['Brand abuse'] && data.types['Brand abuse'][idx]) || 0);
-        const pct = total > 0 ? ((countCounterfeit/total)*100).toFixed(1) : 0;
+        let countCounterfeit = (data.types['Counterfeit'] && data.types['Counterfeit'][idx]) || 0;
+        let countAbuse = (data.types['Brand abuse'] && data.types['Brand abuse'][idx]) || 0;
+        let totalType = countCounterfeit + countAbuse;
+        let percentCounterfeit = totalType > 0 ? ((countCounterfeit / totalType) * 100).toFixed(1) : 0;
         
+        // 此處格式完全依照您的截圖要求
         document.getElementById('insightContent').innerHTML = `
             <span class="highlight-text">"${top1.name}"</span> 與 <span class="highlight-text">"${top2.name}"</span> 
-            仍為主要侵權對象。<br>假貨 (Counterfeit) 佔比約 <span class="highlight-num">${pct}%</span> (${countCounterfeit} 件)。
+            仍為主要侵權對象，分別達 <span class="highlight-num">${top1.val}</span> 件 與 <span class="highlight-num">${top2.val}</span> 件。<br>
+            假貨 (Counterfeit) 仍佔絕大多數 <span class="highlight-num">${countCounterfeit}</span> 件 
+            (≈ <span class="highlight-num">${percentCounterfeit}%</span>)，
+            品牌濫用 (Brand abuse) 數量極少 (僅 <span class="highlight-num">${countAbuse}</span> 件)。
         `;
     }
 
@@ -280,14 +279,11 @@
         for(let i=0; i<=lastIdx; i++) h += `<th>${months[i]}</th>`;
         h += `<th class="ytd-col">YTD 總計</th>`;
         thead.innerHTML = h;
-
         let b = '';
         for(let [name, vals] of Object.entries(data.assets)) {
-            let sum = 0;
-            let row = `<td>${name}</td>`;
+            let sum = 0; let row = `<td>${name}</td>`;
             for(let i=0; i<=lastIdx; i++) {
-                let v = vals[i] || 0; sum += v;
-                row += `<td>${v}</td>`;
+                let v = vals[i] || 0; sum += v; row += `<td>${v}</td>`;
             }
             row += `<td class="ytd-col">${sum}</td>`;
             b += `<tr>${row}</tr>`;
@@ -298,38 +294,40 @@
     function renderCharts(data, lastIdx) {
         const labels = months.slice(0, lastIdx + 1);
 
-        // 1. 偵測與下架趨勢圖 (顯示數字)
+        // 1. 偵測與下架量走勢 (方案二：折線)
         if(charts.trend) charts.trend.destroy();
         charts.trend = new Chart(document.getElementById('trendChart'), {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: labels,
                 datasets: [
                     { 
                         label: '成功下架', 
                         data: data.removed.slice(0, lastIdx+1), 
-                        type: 'line', borderColor: '#c0565b', backgroundColor: '#c0565b',
-                        tension: 0.3, borderWidth: 3, pointRadius: 4, order: 1,
-                        datalabels: { align: 'top', anchor: 'end', color: '#c0565b', offset: 2 }
+                        borderColor: '#c0565b', backgroundColor: '#c0565b',
+                        tension: 0.3, borderWidth: 3, pointRadius: 5,
+                        datalabels: { align: 'top', anchor: 'end', color: '#c0565b', offset: 4 }
                     },
                     { 
                         label: '偵測數量', 
                         data: data.detected.slice(0, lastIdx+1), 
-                        backgroundColor: '#cbd5e1', borderRadius: 4, order: 2,
-                        datalabels: { align: 'center', anchor: 'center', color: '#475569' }
+                        borderColor: '#94a3b8', backgroundColor: '#94a3b8',
+                        borderDash: [5, 5], tension: 0.3, borderWidth: 2, pointRadius: 5,
+                        datalabels: { align: 'bottom', anchor: 'start', color: '#475569', offset: 4 }
                     }
                 ]
             },
             options: { 
                 responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 25, bottom: 25 } },
                 plugins: { 
                     legend: { position: 'bottom' },
-                    datalabels: { font: { weight: 'bold', size: 10 }, formatter: Math.round }
+                    datalabels: { font: { weight: 'bold', size: 11 }, formatter: Math.round }
                 }
             }
         });
 
-        // 2. 成功率趨勢 (顯示數字)
+        // 2. 成功率趨勢
         if(charts.rateTrend) charts.rateTrend.destroy();
         charts.rateTrend = new Chart(document.getElementById('rateTrendChart'), {
             type: 'line',
@@ -339,18 +337,18 @@
                     label: '成功率 %',
                     data: data.rate.slice(0, lastIdx+1).map(v => v > 1 ? v : v*100),
                     borderColor: '#2a9d8f', backgroundColor: 'rgba(42, 157, 143, 0.1)',
-                    fill: true, tension: 0.3, pointRadius: 4,
+                    fill: true, tension: 0.3, pointRadius: 5,
                     datalabels: { align: 'top', anchor: 'end', color: '#2a9d8f', formatter: v => v.toFixed(1)+'%' }
                 }]
             },
             options: { 
                 responsive: true, maintainAspectRatio: false,
-                scales: { y: { min: 0, max: 130 } }, // 留空間給標籤
+                scales: { y: { min: 0, max: 130 } },
                 plugins: { legend: { display: false }, datalabels: { font: { weight: 'bold' } } }
             }
         });
 
-        // 3. 類型圓餅圖 (不顯示數字，避免擁擠)
+        // 類型圓餅圖
         if(charts.types) charts.types.destroy();
         charts.types = new Chart(document.getElementById('typeChart'), {
             type: 'doughnut',
@@ -361,13 +359,10 @@
                     backgroundColor: [pastelColors[0], '#cbd5e1'], borderWidth: 0
                 }]
             },
-            options: { 
-                responsive: true, maintainAspectRatio: false, cutout: '70%',
-                plugins: { datalabels: { display: false }, legend: { position: 'right' } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { datalabels: { display: false }, legend: { position: 'right' } } }
         });
 
-        // 4. 網域排行 (不顯示數字)
+        // 網域排行
         if(charts.domain) charts.domain.destroy();
         charts.domain = new Chart(document.getElementById('domainChart'), {
             type: 'bar',
@@ -375,13 +370,10 @@
                 labels: data.domains.map(d => d.name),
                 datasets: [{ data: data.domains.map(d => d.val), backgroundColor: '#264653', borderRadius: 6 }]
             },
-            options: { 
-                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                plugins: { datalabels: { display: false }, legend: { display: false } }
-            }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
         });
 
-        // 5. 資產趨勢圖
+        // 侵權資產圖
         if(charts.assets) charts.assets.destroy();
         let assetDatasets = []; let c = 0;
         for(let [k, v] of Object.entries(data.assets)) {
@@ -390,11 +382,7 @@
         charts.assets = new Chart(document.getElementById('assetsChart'), {
             type: 'bar',
             data: { labels: labels, datasets: assetDatasets },
-            options: { 
-                responsive: true, maintainAspectRatio: false,
-                scales: { x:{stacked:true}, y:{stacked:true} },
-                plugins: { datalabels: { display: false } } // 堆疊圖不顯示數字避免混亂
-            }
+            options: { responsive: true, maintainAspectRatio: false, scales: { x:{stacked:true}, y:{stacked:true} }, plugins: { datalabels: { display: false } } }
         });
     }
 </script>
