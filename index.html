@@ -33,15 +33,12 @@
         .kpi-card { background: white; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .kpi-num { font-size: 28px; font-weight: 700; color: var(--primary); font-family: 'Roboto', sans-serif; }
         .kpi-label { font-size: 13px; color: var(--text-light); margin-bottom: 4px; }
-        
-        /* 表格樣式優化 */
         .comparison-table-container { background: white; border-radius: 12px; padding: 20px; border: 1px solid #f1f5f9; overflow-x: auto; }
         .comp-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; min-width: 1000px; }
         .comp-table th { background: #e2e8f0; color: #475569; padding: 8px 4px; border: 1px solid #cbd5e1; font-weight: 700; }
         .comp-table td { padding: 8px 4px; border: 1px solid #e2e8f0; }
         .comp-header-main { background: #94a3b8 !important; color: white !important; }
         .growth-neg { color: #94a3b8; } .growth-pos { color: #c0565b; font-weight: bold; }
-        
         .insight-card { background: linear-gradient(135deg, #fff 0%, #fffafa 100%); border-left: 5px solid var(--primary); border-radius: 12px; padding: 20px 25px; margin-bottom: 30px; border: 1px solid #f1f5f9; }
         .insight-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
         .insight-content { font-size: 15px; line-height: 1.8; color: var(--secondary); }
@@ -82,23 +79,11 @@
             <div class="kpi-card"><div class="kpi-label">執行成功率 (2026)</div><div class="kpi-num" id="kpi-rate">-</div></div>
             <div class="kpi-card"><div class="kpi-label">經濟影響 (NTD 萬元)</div><div class="kpi-num" id="kpi-impact">-</div></div>
         </div>
-        
         <div class="comparison-table-container" id="compTableBox" style="display:none;">
             <table class="comp-table">
                 <thead>
-                    <tr>
-                        <th rowspan="2" class="comp-header-main">月份</th>
-                        <th colspan="3">偵測數量</th>
-                        <th colspan="2">成功下架</th> <th colspan="3">不可執行</th>
-                        <th colspan="2">執行成功率(%)</th>
-                        <th colspan="3">經濟影響 (NTD 萬元)</th>
-                    </tr>
-                    <tr>
-                        <th>2025</th><th>2026</th><th>成長率</th>
-                        <th>2025</th><th>2026</th> <th>2025</th><th>2026</th><th>成長率</th>
-                        <th>2025</th><th>2026</th>
-                        <th>2025</th><th>2026</th><th>成長率</th>
-                    </tr>
+                    <tr><th rowspan="2" class="comp-header-main">月份</th><th colspan="3">偵測數量</th><th colspan="2">成功下架</th><th colspan="3">不可執行</th><th colspan="2">執行成功率(%)</th><th colspan="3">經濟影響 (NTD 萬元)</th></tr>
+                    <tr><th>2025</th><th>2026</th><th>成長率</th><th>2025</th><th>2026</th><th>2025</th><th>2026</th><th>成長率</th><th>2025</th><th>2026</th><th>2025</th><th>2026</th><th>成長率</th></tr>
                 </thead>
                 <tbody id="compTableBody"></tbody>
             </table>
@@ -137,7 +122,14 @@
     document.getElementById('csvInput').addEventListener('change', function(e) {
         const file = e.target.files[0]; if(!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => { try { const data = parseCSV(e.target.result); updateDashboard(data, file.name); } catch(err) { console.error(err); alert("匯入失敗，請檢查 CSV 格式"); } };
+        reader.onload = (e) => { 
+            try { 
+                const data = parseCSV(e.target.result); 
+                updateDashboard(data, file.name); 
+            } catch(err) { 
+                console.error(err); alert("匯入失敗，請檢查 CSV 格式"); 
+            } 
+        };
         reader.readAsText(file, document.getElementById('encodingSelect').value);
         this.value = '';
     });
@@ -146,7 +138,6 @@
         if(globalData) { const idx = parseInt(e.target.value); renderKPI(globalData, idx); generateInsights(globalData, idx); renderCharts(globalData, idx); }
     });
 
-    // CSV 欄位分割，處理雙引號
     function splitCSVLine(line) {
         const result = []; let current = ''; let inQuotes = false;
         for (let char of line) { if (char === '"') inQuotes = !inQuotes; else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; } else current += char; }
@@ -155,22 +146,27 @@
 
     function parseCSV(csvText) {
         const lines = csvText.split(/\r\n|\n/); let section = null;
-        // 數據容器
-        let data = { detected2025:Array(12).fill(0), detected2026:Array(12).fill(0), removed2025:Array(12).fill(0), removed2026:Array(12).fill(0), unable2025:Array(12).fill(0), unable2026:Array(12).fill(0), rate2025:Array(12).fill(0), rate2026:Array(12).fill(0), impact2025:Array(12).fill(0), impact2026:Array(12).fill(0), assets:{}, types:{}, domains:[] };
+        let data = { 
+            detected2025:Array(12).fill(0), detected2026:Array(12).fill(0), 
+            removed2025:Array(12).fill(0), removed2026:Array(12).fill(0), 
+            unable2025:Array(12).fill(0), unable2026:Array(12).fill(0), 
+            rate2025:Array(12).fill(0), rate2026:Array(12).fill(0), 
+            impact2025:Array(12).fill(0), impact2026:Array(12).fill(0), 
+            assets:{}, types:{}, 
+            // 修改：domains 改為陣列的陣列，每個索引對應一個月
+            domains: Array(12).fill(null).map(() => [])
+        };
         const clean = (v) => { if(!v || v==='-' || v.trim()==='' || v===' - ') return 0; let n = parseFloat(v.replace(/%/g,'').replace(/,/g,'').replace(/"/g,'')); return isNaN(n)?0:n; };
 
         lines.forEach(line => {
             if(!line.trim()) return; const cols = splitCSVLine(line);
             
-            // 策略：直接抓取上方 2026 與 中間 2025 區塊，完全忽略下方不穩定的對比表格
             if (cols[0].includes("指標項目") && cols[1].includes("1月")) { section = "2026"; return; }
             if (cols[0].includes("指標項目") && (cols[1].includes("Jan-25") || cols[1].includes("2025"))) { section = "2025"; return; }
-            
             if (line.includes("侵權資產")) { section = "Assets"; return; }
             if (line.includes("保護類型")) { section = "Types"; return; }
             if (line.includes("網域活動排行")) { section = "Domains"; return; }
 
-            // 抓 2026 (上方區塊)
             if (section === "2026") {
                 if (cols[0].includes("偵測數量")) data.detected2026 = cols.slice(1,13).map(clean);
                 if (cols[0].includes("成功下架")) data.removed2026 = cols.slice(1,13).map(clean);
@@ -178,7 +174,6 @@
                 if (cols[0].includes("執行成功率")) data.rate2026 = cols.slice(1,13).map(clean);
                 if (cols[0].includes("經濟影響")) data.impact2026 = cols.slice(1,13).map(clean);
             }
-            // 抓 2025 (中間區塊)
             else if (section === "2025") {
                 if (cols[0].includes("偵測數量")) data.detected2025 = cols.slice(1,13).map(clean);
                 if (cols[0].includes("成功下架")) data.removed2025 = cols.slice(1,13).map(clean);
@@ -187,11 +182,21 @@
                 if (cols[0].includes("經濟影響")) data.impact2025 = cols.slice(1,13).map(clean);
             }
             else if (section === "Assets" && !line.includes("合計") && cols[0].length > 2) {
-                data.assets[cols[0]] = cols.slice(1, 13).map(clean);
-            } else if (section === "Types" && (cols[0] === "Counterfeit" || cols[0] === "Brand abuse")) {
-                data.types[cols[0]] = cols.slice(1, 13).map(clean);
-            } else if (section === "Domains" && cols[1] && cols[1].includes("(")) {
-                const m = cols[1].match(/(.*) \((\d+)\)/); if(m) data.domains.push({ name: m[1].trim(), val: parseInt(m[2]) });
+                data.assets[cols[0].trim()] = cols.slice(1, 13).map(clean);
+            } 
+            else if (section === "Types" && (cols[0].trim().includes("Counterfeit") || cols[0].trim().includes("Brand abuse"))) {
+                data.types[cols[0].trim()] = cols.slice(1, 13).map(clean);
+            } 
+            // 修正：網域解析，掃描第 1-12 欄 (索引 1-12)
+            else if (section === "Domains") {
+                for (let i = 1; i <= 12; i++) {
+                    if (cols[i] && cols[i].includes("(")) {
+                        const m = cols[i].match(/(.*) \((\d+)\)/);
+                        if (m) {
+                            data.domains[i-1].push({ name: m[1].trim(), val: parseInt(m[2]) });
+                        }
+                    }
+                }
             }
         });
         return data;
@@ -217,9 +222,7 @@
         for (let i = 0; i <= lastIdx; i++) {
             tbody.innerHTML += `<tr><td style="background:#f8fafc; font-weight:bold;">${i + 1}</td>
                 <td>${data.detected2025[i].toLocaleString()}</td><td>${data.detected2026[i].toLocaleString()}</td><td class="${data.detected2026[i] < data.detected2025[i] ? 'growth-neg' : 'growth-pos'}">${calcGrowth(data.detected2026[i], data.detected2025[i])}</td>
-                
                 <td>${data.removed2025[i].toLocaleString()}</td><td>${data.removed2026[i].toLocaleString()}</td>
-                
                 <td>${data.unable2025[i].toLocaleString()}</td><td>${data.unable2026[i].toLocaleString()}</td><td class="${data.unable2026[i] < data.unable2025[i] ? 'growth-neg' : 'growth-pos'}">${calcGrowth(data.unable2026[i], data.unable2025[i])}</td>
                 <td>${data.rate2025[i].toFixed(1)}%</td><td>${data.rate2026[i].toFixed(1)}%</td>
                 <td>${data.impact2025[i].toLocaleString()}</td><td>${data.impact2026[i].toLocaleString()}</td><td class="${data.impact2026[i] < data.impact2025[i] ? 'growth-neg' : 'growth-pos'}">${calcGrowth(data.impact2026[i], data.impact2025[i])}</td></tr>`;
@@ -235,14 +238,22 @@
     }
 
     function generateInsights(data, idx) {
-        document.getElementById('insightSection').style.display = 'block';
-        document.getElementById('insightMonthTitle').textContent = `【本月觀察重點 - ${months[idx]}】`;
-        let assetList = Object.entries(data.assets).map(([n, v]) => ({ name: n, val: v[idx] || 0 })).sort((a,b) => b.val - a.val);
-        const top1 = assetList[0] || { name: '無', val: 0 }; const top2 = assetList[1] || { name: '無', val: 0 };
-        let cCount = (data.types['Counterfeit'] && data.types['Counterfeit'][idx]) || 0;
-        let aCount = (data.types['Brand abuse'] && data.types['Brand abuse'][idx]) || 0;
-        let total = cCount + aCount; let pct = total > 0 ? ((cCount / total) * 100).toFixed(1) : 0;
-        document.getElementById('insightContent').innerHTML = `<span class="highlight-text">"${top1.name}"</span> 與 <span class="highlight-text">"${top2.name}"</span> 仍為主要侵權對象，分別達 <span class="highlight-num">${top1.val.toLocaleString()}</span> 件 與 <span class="highlight-num">${top2.val.toLocaleString()}</span> 件。<br>假貨 (Counterfeit) 仍佔絕大多數 <span class="highlight-num">${cCount.toLocaleString()}</span> 件 (≈ <span class="highlight-num">${pct}%</span>)，品牌濫用 (Brand abuse) 數量極少 (僅 <span class="highlight-num">${aCount.toLocaleString()}</span> 件)。`;
+        try {
+            document.getElementById('insightSection').style.display = 'block';
+            document.getElementById('insightMonthTitle').textContent = `【本月觀察重點 - ${months[idx]}】`;
+            document.getElementById('insightContent').textContent = '計算中...';
+
+            let assetList = Object.entries(data.assets).map(([n, v]) => ({ name: n, val: v[idx] || 0 })).sort((a,b) => b.val - a.val);
+            const top1 = assetList[0] || { name: '無', val: 0 }; const top2 = assetList[1] || { name: '無', val: 0 };
+            
+            let cKey = Object.keys(data.types).find(k => k.includes("Counterfeit")) || "Counterfeit";
+            let aKey = Object.keys(data.types).find(k => k.includes("Brand abuse")) || "Brand abuse";
+            let cCount = (data.types[cKey] || Array(12).fill(0))[idx] || 0;
+            let aCount = (data.types[aKey] || Array(12).fill(0))[idx] || 0;
+            
+            let total = cCount + aCount; let pct = total > 0 ? ((cCount / total) * 100).toFixed(1) : 0;
+            document.getElementById('insightContent').innerHTML = `<span class="highlight-text">"${top1.name}"</span> 與 <span class="highlight-text">"${top2.name}"</span> 仍為主要侵權對象，分別達 <span class="highlight-num">${top1.val.toLocaleString()}</span> 件 與 <span class="highlight-num">${top2.val.toLocaleString()}</span> 件。<br>假貨 (Counterfeit) 仍佔絕大多數 <span class="highlight-num">${cCount.toLocaleString()}</span> 件 (≈ <span class="highlight-num">${pct}%</span>)，品牌濫用 (Brand abuse) 數量極少 (僅 <span class="highlight-num">${aCount.toLocaleString()}</span> 件)。`;
+        } catch(e) { console.error("Insight Error:", e); document.getElementById('insightContent').textContent = "無法計算本月重點 (數據不足)"; }
     }
 
     function renderAssetTable(data, lastIdx) {
@@ -270,13 +281,19 @@
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 130 } }, plugins: { legend: { display: false }, datalabels: { font: { weight: 'bold' } } } }
         });
         if(charts.types) charts.types.destroy();
+        let cKey = Object.keys(data.types).find(k => k.includes("Counterfeit")) || "Counterfeit";
+        let aKey = Object.keys(data.types).find(k => k.includes("Brand abuse")) || "Brand abuse";
+        let cVal = (data.types[cKey] || [])[lastIdx] || 0;
+        let aVal = (data.types[aKey] || [])[lastIdx] || 0;
         charts.types = new Chart(document.getElementById('typeChart'), {
-            type: 'doughnut', data: { labels: Object.keys(data.types), datasets: [{ data: Object.keys(data.types).map(k => data.types[k][lastIdx] || 0), backgroundColor: [pastelColors[0], '#cbd5e1'], borderWidth: 0 }] },
+            type: 'doughnut', data: { labels: ["Counterfeit", "Brand abuse"], datasets: [{ data: [cVal, aVal], backgroundColor: [pastelColors[0], '#cbd5e1'], borderWidth: 0 }] },
             options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { datalabels: { display: false }, legend: { position: 'right' } } }
         });
         if(charts.domain) charts.domain.destroy();
+        // 修正：動態讀取該月份的網域排行
+        const currentMonthDomains = data.domains[lastIdx] || [];
         charts.domain = new Chart(document.getElementById('domainChart'), {
-            type: 'bar', data: { labels: data.domains.map(d => d.name), datasets: [{ data: data.domains.map(d => d.val), backgroundColor: '#264653', borderRadius: 6 }] },
+            type: 'bar', data: { labels: currentMonthDomains.map(d => d.name), datasets: [{ data: currentMonthDomains.map(d => d.val), backgroundColor: '#264653', borderRadius: 6 }] },
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
         });
         if(charts.assets) charts.assets.destroy();
