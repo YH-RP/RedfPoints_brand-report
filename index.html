@@ -20,9 +20,9 @@
         .header-title h1 { margin: 0; font-size: 28px; font-weight: 700; color: var(--secondary); letter-spacing: 1px; }
         .header-title span { font-size: 14px; color: var(--text-light); margin-top: 5px; display: block;}
         .upload-area { display: flex; gap: 10px; }
-        .style-select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; }
-        .btn-upload { background: var(--primary); color: white; padding: 8px 20px; border-radius: 50px; cursor: pointer; border: none; transition: 0.3s; box-shadow: 0 4px 6px rgba(192, 86, 91, 0.1); }
-        .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(192, 86, 91, 0.2); }
+        .style-select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
+        .btn-upload { background: var(--primary); color: white; padding: 8px 20px; border-radius: 50px; cursor: pointer; border: none; transition: 0.3s; }
+        .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(192, 86, 91, 0.2); }
         #csvInput { display: none; }
         .section-box { margin-bottom: 40px; }
         .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -33,12 +33,15 @@
         .kpi-card { background: white; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .kpi-num { font-size: 28px; font-weight: 700; color: var(--primary); font-family: 'Roboto', sans-serif; }
         .kpi-label { font-size: 13px; color: var(--text-light); margin-bottom: 4px; }
+        
+        /* 表格樣式優化 */
         .comparison-table-container { background: white; border-radius: 12px; padding: 20px; border: 1px solid #f1f5f9; overflow-x: auto; }
         .comp-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; min-width: 1000px; }
         .comp-table th { background: #e2e8f0; color: #475569; padding: 8px 4px; border: 1px solid #cbd5e1; font-weight: 700; }
         .comp-table td { padding: 8px 4px; border: 1px solid #e2e8f0; }
         .comp-header-main { background: #94a3b8 !important; color: white !important; }
         .growth-neg { color: #94a3b8; } .growth-pos { color: #c0565b; font-weight: bold; }
+        
         .insight-card { background: linear-gradient(135deg, #fff 0%, #fffafa 100%); border-left: 5px solid var(--primary); border-radius: 12px; padding: 20px 25px; margin-bottom: 30px; border: 1px solid #f1f5f9; }
         .insight-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
         .insight-content { font-size: 15px; line-height: 1.8; color: var(--secondary); }
@@ -63,7 +66,7 @@
 <body>
 <div class="container">
     <div class="header-section">
-        <div class="header-title"><h1>Red Points Report</h1><span id="statusText">請匯入 2024-2026 成效比較報表</span></div>
+        <div class="header-title"><h1>Red Points Report</h1><span id="statusText">請匯入 2025-2026 成效比較報表</span></div>
         <div class="upload-area">
             <select id="encodingSelect" class="style-select"><option value="UTF-8">UTF-8</option><option value="Big5">Big5</option></select>
             <label for="csvInput" class="btn-upload">＋ 匯入檔案</label><input type="file" id="csvInput" accept=".csv" />
@@ -79,11 +82,23 @@
             <div class="kpi-card"><div class="kpi-label">執行成功率 (2026)</div><div class="kpi-num" id="kpi-rate">-</div></div>
             <div class="kpi-card"><div class="kpi-label">經濟影響 (NTD 萬元)</div><div class="kpi-num" id="kpi-impact">-</div></div>
         </div>
+        
         <div class="comparison-table-container" id="compTableBox" style="display:none;">
             <table class="comp-table">
                 <thead>
-                    <tr><th rowspan="2" class="comp-header-main">月份</th><th colspan="3">偵測數量</th><th colspan="3">成功下架</th><th colspan="3">不可執行</th><th colspan="2">執行成功率(%)</th><th colspan="3">經濟影響 (NTD 萬元)</th></tr>
-                    <tr><th>2025</th><th>2026</th><th>成長率</th><th>2025</th><th>2026</th><th>成長率</th><th>2025</th><th>2026</th><th>成長率</th><th>2025</th><th>2026</th><th>2025</th><th>2026</th><th>成長率</th></tr>
+                    <tr>
+                        <th rowspan="2" class="comp-header-main">月份</th>
+                        <th colspan="3">偵測數量</th>
+                        <th colspan="2">成功下架</th> <th colspan="3">不可執行</th>
+                        <th colspan="2">執行成功率(%)</th>
+                        <th colspan="3">經濟影響 (NTD 萬元)</th>
+                    </tr>
+                    <tr>
+                        <th>2025</th><th>2026</th><th>成長率</th>
+                        <th>2025</th><th>2026</th> <th>2025</th><th>2026</th><th>成長率</th>
+                        <th>2025</th><th>2026</th>
+                        <th>2025</th><th>2026</th><th>成長率</th>
+                    </tr>
                 </thead>
                 <tbody id="compTableBody"></tbody>
             </table>
@@ -122,14 +137,7 @@
     document.getElementById('csvInput').addEventListener('change', function(e) {
         const file = e.target.files[0]; if(!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => { 
-            try { 
-                const data = parseCSV(e.target.result); 
-                updateDashboard(data, file.name); 
-            } catch(err) { 
-                console.error(err); alert("匯入失敗，請檢查 CSV 格式"); 
-            } 
-        };
+        reader.onload = (e) => { try { const data = parseCSV(e.target.result); updateDashboard(data, file.name); } catch(err) { console.error(err); alert("匯入失敗，請檢查 CSV 格式"); } };
         reader.readAsText(file, document.getElementById('encodingSelect').value);
         this.value = '';
     });
@@ -138,6 +146,7 @@
         if(globalData) { const idx = parseInt(e.target.value); renderKPI(globalData, idx); generateInsights(globalData, idx); renderCharts(globalData, idx); }
     });
 
+    // CSV 欄位分割，處理雙引號
     function splitCSVLine(line) {
         const result = []; let current = ''; let inQuotes = false;
         for (let char of line) { if (char === '"') inQuotes = !inQuotes; else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; } else current += char; }
@@ -146,22 +155,22 @@
 
     function parseCSV(csvText) {
         const lines = csvText.split(/\r\n|\n/); let section = null;
+        // 數據容器
         let data = { detected2025:Array(12).fill(0), detected2026:Array(12).fill(0), removed2025:Array(12).fill(0), removed2026:Array(12).fill(0), unable2025:Array(12).fill(0), unable2026:Array(12).fill(0), rate2025:Array(12).fill(0), rate2026:Array(12).fill(0), impact2025:Array(12).fill(0), impact2026:Array(12).fill(0), assets:{}, types:{}, domains:[] };
         const clean = (v) => { if(!v || v==='-' || v.trim()==='' || v===' - ') return 0; let n = parseFloat(v.replace(/%/g,'').replace(/,/g,'').replace(/"/g,'')); return isNaN(n)?0:n; };
 
         lines.forEach(line => {
             if(!line.trim()) return; const cols = splitCSVLine(line);
             
-            // 2026 區塊特徵：標題包含 "1月", "2月"... (在你的新 CSV 中，這是上方的區塊)
+            // 策略：直接抓取上方 2026 與 中間 2025 區塊，完全忽略下方不穩定的對比表格
             if (cols[0].includes("指標項目") && cols[1].includes("1月")) { section = "2026"; return; }
-            // 2025 區塊特徵：標題包含 "2025-01"... (在你的新 CSV 中，這是中間的區塊)
-            if (cols[0].includes("指標項目") && cols[1].includes("2025")) { section = "2025"; return; }
+            if (cols[0].includes("指標項目") && (cols[1].includes("Jan-25") || cols[1].includes("2025"))) { section = "2025"; return; }
             
             if (line.includes("侵權資產")) { section = "Assets"; return; }
             if (line.includes("保護類型")) { section = "Types"; return; }
             if (line.includes("網域活動排行")) { section = "Domains"; return; }
 
-            // 讀取 2026 數據
+            // 抓 2026 (上方區塊)
             if (section === "2026") {
                 if (cols[0].includes("偵測數量")) data.detected2026 = cols.slice(1,13).map(clean);
                 if (cols[0].includes("成功下架")) data.removed2026 = cols.slice(1,13).map(clean);
@@ -169,7 +178,7 @@
                 if (cols[0].includes("執行成功率")) data.rate2026 = cols.slice(1,13).map(clean);
                 if (cols[0].includes("經濟影響")) data.impact2026 = cols.slice(1,13).map(clean);
             }
-            // 讀取 2025 數據
+            // 抓 2025 (中間區塊)
             else if (section === "2025") {
                 if (cols[0].includes("偵測數量")) data.detected2025 = cols.slice(1,13).map(clean);
                 if (cols[0].includes("成功下架")) data.removed2025 = cols.slice(1,13).map(clean);
@@ -177,7 +186,6 @@
                 if (cols[0].includes("執行成功率")) data.rate2025 = cols.slice(1,13).map(clean);
                 if (cols[0].includes("經濟影響")) data.impact2025 = cols.slice(1,13).map(clean);
             }
-            // 其他區塊
             else if (section === "Assets" && !line.includes("合計") && cols[0].length > 2) {
                 data.assets[cols[0]] = cols.slice(1, 13).map(clean);
             } else if (section === "Types" && (cols[0] === "Counterfeit" || cols[0] === "Brand abuse")) {
@@ -207,10 +215,11 @@
         const tbody = document.getElementById('compTableBody'); tbody.innerHTML = '';
         const calcGrowth = (v26, v25) => { if (!v25 || v25 === 0) return v26 > 0 ? '+100%' : '-'; let res = Math.round(((v26 - v25) / v25) * 100); return (res >= 0 ? '+' : '') + res + '%'; };
         for (let i = 0; i <= lastIdx; i++) {
-            // 顏色邏輯修正：統一使用 growth-neg / growth-pos
             tbody.innerHTML += `<tr><td style="background:#f8fafc; font-weight:bold;">${i + 1}</td>
                 <td>${data.detected2025[i].toLocaleString()}</td><td>${data.detected2026[i].toLocaleString()}</td><td class="${data.detected2026[i] < data.detected2025[i] ? 'growth-neg' : 'growth-pos'}">${calcGrowth(data.detected2026[i], data.detected2025[i])}</td>
-                <td>${data.removed2025[i].toLocaleString()}</td><td>${data.removed2026[i].toLocaleString()}</td><td class="${data.removed2026[i] < data.removed2025[i] ? 'growth-neg' : 'growth-pos'}">${calcGrowth(data.removed2026[i], data.removed2025[i])}</td>
+                
+                <td>${data.removed2025[i].toLocaleString()}</td><td>${data.removed2026[i].toLocaleString()}</td>
+                
                 <td>${data.unable2025[i].toLocaleString()}</td><td>${data.unable2026[i].toLocaleString()}</td><td class="${data.unable2026[i] < data.unable2025[i] ? 'growth-neg' : 'growth-pos'}">${calcGrowth(data.unable2026[i], data.unable2025[i])}</td>
                 <td>${data.rate2025[i].toFixed(1)}%</td><td>${data.rate2026[i].toFixed(1)}%</td>
                 <td>${data.impact2025[i].toLocaleString()}</td><td>${data.impact2026[i].toLocaleString()}</td><td class="${data.impact2026[i] < data.impact2025[i] ? 'growth-neg' : 'growth-pos'}">${calcGrowth(data.impact2026[i], data.impact2025[i])}</td></tr>`;
