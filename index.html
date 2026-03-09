@@ -153,7 +153,6 @@
             rate2025:Array(12).fill(0), rate2026:Array(12).fill(0), 
             impact2025:Array(12).fill(0), impact2026:Array(12).fill(0), 
             assets:{}, types:{}, 
-            // 修改：domains 改為陣列的陣列，每個索引對應一個月
             domains: Array(12).fill(null).map(() => [])
         };
         const clean = (v) => { if(!v || v==='-' || v.trim()==='' || v===' - ') return 0; let n = parseFloat(v.replace(/%/g,'').replace(/,/g,'').replace(/"/g,'')); return isNaN(n)?0:n; };
@@ -187,7 +186,6 @@
             else if (section === "Types" && (cols[0].trim().includes("Counterfeit") || cols[0].trim().includes("Brand abuse"))) {
                 data.types[cols[0].trim()] = cols.slice(1, 13).map(clean);
             } 
-            // 修正：網域解析，掃描第 1-12 欄 (索引 1-12)
             else if (section === "Domains") {
                 for (let i = 1; i <= 12; i++) {
                     if (cols[i] && cols[i].includes("(")) {
@@ -280,6 +278,8 @@
             type: 'line', data: { labels: labels, datasets: [{ label: '成功率 %', data: rateData, borderColor: '#2a9d8f', backgroundColor: 'rgba(42, 157, 143, 0.1)', fill: true, tension: 0.3, pointRadius: 5, datalabels: { align: 'top', anchor: 'end', color: '#2a9d8f', formatter: v => v.toFixed(1)+'%' } }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 130 } }, plugins: { legend: { display: false }, datalabels: { font: { weight: 'bold' } } } }
         });
+        
+        // 圓餅圖修改：顯示數值
         if(charts.types) charts.types.destroy();
         let cKey = Object.keys(data.types).find(k => k.includes("Counterfeit")) || "Counterfeit";
         let aKey = Object.keys(data.types).find(k => k.includes("Brand abuse")) || "Brand abuse";
@@ -287,15 +287,37 @@
         let aVal = (data.types[aKey] || [])[lastIdx] || 0;
         charts.types = new Chart(document.getElementById('typeChart'), {
             type: 'doughnut', data: { labels: ["Counterfeit", "Brand abuse"], datasets: [{ data: [cVal, aVal], backgroundColor: [pastelColors[0], '#cbd5e1'], borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { datalabels: { display: false }, legend: { position: 'right' } } }
+            options: { 
+                responsive: true, maintainAspectRatio: false, cutout: '70%', 
+                plugins: { 
+                    datalabels: { 
+                        display: true, color: '#fff', font: { weight: 'bold', size: 14 },
+                        formatter: (value) => value > 0 ? value.toLocaleString() : ''
+                    }, 
+                    legend: { position: 'right' } 
+                } 
+            }
         });
+
+        // 條形圖修改：顯示數值
         if(charts.domain) charts.domain.destroy();
-        // 修正：動態讀取該月份的網域排行
         const currentMonthDomains = data.domains[lastIdx] || [];
         charts.domain = new Chart(document.getElementById('domainChart'), {
             type: 'bar', data: { labels: currentMonthDomains.map(d => d.name), datasets: [{ data: currentMonthDomains.map(d => d.val), backgroundColor: '#264653', borderRadius: 6 }] },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { display: false } } }
+            options: { 
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
+                plugins: { 
+                    datalabels: { 
+                        display: true, anchor: 'end', align: 'right', offset: 5, color: '#475569', font: { weight: 'bold' },
+                        formatter: (value) => value.toLocaleString()
+                    }, 
+                    legend: { display: false } 
+                },
+                layout: { padding: { right: 40 } },
+                scales: { x: { grid: { display: false } }, y: { grid: { display: false } } }
+            }
         });
+
         if(charts.assets) charts.assets.destroy();
         charts.assets = new Chart(document.getElementById('assetsChart'), {
             type: 'bar', data: { labels: labels, datasets: Object.entries(data.assets).map(([k, v], i) => ({ label: k, data: v.slice(0, lastIdx+1), backgroundColor: pastelColors[i % pastelColors.length], borderRadius: 4 })) },
