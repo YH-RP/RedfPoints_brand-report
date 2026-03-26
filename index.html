@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Red Points 2026 監控報告</title>
+    <title>Red Points 2026 監控報告 (雲端自動同步)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -19,11 +19,10 @@
         .header-section { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
         .header-title h1 { margin: 0; font-size: 28px; font-weight: 700; color: var(--secondary); letter-spacing: 1px; }
         .header-title span { font-size: 14px; color: var(--text-light); margin-top: 5px; display: block;}
-        .upload-area { display: flex; gap: 10px; }
-        .style-select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
-        .btn-upload { background: var(--primary); color: white; padding: 8px 20px; border-radius: 50px; cursor: pointer; border: none; transition: 0.3s; }
-        .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(192, 86, 91, 0.2); }
-        #csvInput { display: none; }
+        .sync-status { font-size: 13px; padding: 4px 12px; border-radius: 20px; background: #e2e8f0; color: #475569; }
+        .sync-loading { background: #fff1f2; color: #c0565b; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
         .section-box { margin-bottom: 40px; }
         .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .section-title { font-size: 18px; color: var(--secondary); font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -63,15 +62,18 @@
 <body>
 <div class="container">
     <div class="header-section">
-        <div class="header-title"><h1>Red Points Report</h1><span id="statusText">請匯入 2025-2026 成效比較報表</span></div>
-        <div class="upload-area">
-            <select id="encodingSelect" class="style-select"><option value="UTF-8">UTF-8</option><option value="Big5">Big5</option></select>
-            <label for="csvInput" class="btn-upload">＋ 匯入檔案</label><input type="file" id="csvInput" accept=".csv" />
+        <div class="header-title">
+            <h1>Red Points Report</h1>
+            <span id="statusText">正在同步雲端數據...</span>
         </div>
+        <div id="syncIndicator" class="sync-status sync-loading">● 雲端連線中</div>
     </div>
 
     <div class="section-box">
-        <div class="section-header-row"><div class="section-title">1. 關鍵指標 (KPI)</div><select id="monthSelect" class="month-selector" style="display:none;"></select></div>
+        <div class="section-header-row">
+            <div class="section-title">1. 關鍵指標 (KPI)</div>
+            <select id="monthSelect" class="month-selector" style="display:none;"></select>
+        </div>
         <div class="kpi-grid">
             <div class="kpi-card"><div class="kpi-label">偵測數量 (2026)</div><div class="kpi-num" id="kpi-detect">-</div></div>
             <div class="kpi-card"><div class="kpi-label">成功下架 (2026)</div><div class="kpi-num" id="kpi-remove">-</div></div>
@@ -90,7 +92,12 @@
         </div>
     </div>
 
-    <div id="insightSection" class="section-box" style="display:none;"><div class="insight-card"><div class="insight-title">💡 <span id="insightMonthTitle">本月觀察重點</span></div><div class="insight-content" id="insightContent">計算中...</div></div></div>
+    <div id="insightSection" class="section-box" style="display:none;">
+        <div class="insight-card">
+            <div class="insight-title">💡 <span id="insightMonthTitle">本月觀察重點</span></div>
+            <div class="insight-content" id="insightContent">讀取中...</div>
+        </div>
+    </div>
 
     <div class="split-layout">
         <div class="section-box" style="margin:0;"><div class="section-title">2. 保護類型分佈</div><div class="chart-card"><canvas id="typeChart"></canvas></div></div>
@@ -99,7 +106,13 @@
 
     <div class="section-box" style="margin-top: 40px;">
         <div class="section-title">4. 侵權資產分析 (趨勢與明細)</div>
-        <div class="assets-container"><div class="chart-area"><canvas id="assetsChart"></canvas></div><table class="custom-table" id="assetTable"><thead><tr id="assetTableHeader"><th>資產名稱</th></tr></thead><tbody id="assetTableBody"></tbody></table></div>
+        <div class="assets-container">
+            <div class="chart-area"><canvas id="assetsChart"></canvas></div>
+            <table class="custom-table" id="assetTable">
+                <thead><tr id="assetTableHeader"><th>資產名稱</th></tr></thead>
+                <tbody id="assetTableBody"></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="section-box">
@@ -110,30 +123,57 @@
         </div>
     </div>
 
-    <div class="footer-link-section"><div class="footer-btn-group"><a href="https://redpoints-dash-rherhkqf.manus.space/" target="_blank" class="external-link-btn">📊 Red Points 2025</a><a href="https://yh-rp.github.io/red-points-intro/" target="_blank" class="external-link-btn secondary">📖 Red Points 網域及流程</a></div></div>
+    <div class="footer-link-section">
+        <div class="footer-btn-group">
+            <a href="https://redpoints-dash-rherhkqf.manus.space/" target="_blank" class="external-link-btn">📊 Red Points 2025</a>
+            <a href="https://yh-rp.github.io/red-points-intro/" target="_blank" class="external-link-btn secondary">📖 Red Points 網域及流程</a>
+        </div>
+    </div>
 </div>
 
 <script>
-    Chart.register(ChartDataLabels); Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
+    // --- 配置區域 ---
+    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNDNvgGv-0K3Tyc72XG1Spob0Azd8eJzEJYwMP2jFHtJQx0ojjH28becZrE4Bnw4XdAGp66MRenH-E/pub?output=csv';
+    
+    Chart.register(ChartDataLabels); 
+    Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
     const pastelColors = ['#c0565b', '#2a9d8f', '#e9c46a', '#264653', '#f4a261', '#8ab17d'];
     const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-    let globalData = null; let charts = {};
+    let globalData = null; 
+    let charts = {};
 
-    document.getElementById('csvInput').addEventListener('change', function(e) {
-        const file = e.target.files[0]; if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { 
-            try { 
-                const data = parseCSV(e.target.result); 
-                updateDashboard(data, file.name); 
-            } catch(err) { 
-                console.error(err); alert("匯入失敗，請檢查 CSV 格式"); 
-            } 
-        };
-        reader.readAsText(file, document.getElementById('encodingSelect').value);
-        this.value = '';
-    });
+    // --- 初始化：從 Google Sheets 抓取資料 ---
+    window.onload = async () => {
+        const statusText = document.getElementById('statusText');
+        const syncIndicator = document.getElementById('syncIndicator');
 
+        try {
+            const response = await fetch(GOOGLE_SHEET_CSV_URL);
+            if (!response.ok) throw new Error('連線失敗');
+            
+            const csvText = await response.text();
+            const data = parseCSV(csvText);
+            
+            // 更新 UI
+            const now = new Date();
+            const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
+            statusText.textContent = `數據來源：雲端試算表 (最後同步 ${timeStr})`;
+            syncIndicator.textContent = "● 已連線";
+            syncIndicator.classList.remove('sync-loading');
+            syncIndicator.style.background = "#dcfce7";
+            syncIndicator.style.color = "#15803d";
+
+            updateDashboard(data, "Google Sheets");
+        } catch (err) {
+            console.error(err);
+            statusText.textContent = "❌ 雲端同步失敗，請檢查網址或試算表發布設定";
+            syncIndicator.textContent = "● 連線錯誤";
+            syncIndicator.style.background = "#fee2e2";
+            syncIndicator.style.color = "#b91c1c";
+        }
+    };
+
+    // 原有的邏輯保持不變
     document.getElementById('monthSelect').addEventListener('change', (e) => {
         if(globalData) { const idx = parseInt(e.target.value); renderKPI(globalData, idx); generateInsights(globalData, idx); renderCharts(globalData, idx); }
     });
@@ -159,7 +199,6 @@
 
         lines.forEach(line => {
             if(!line.trim()) return; const cols = splitCSVLine(line);
-            
             if (cols[0].includes("指標項目") && cols[1].includes("1月")) { section = "2026"; return; }
             if (cols[0].includes("指標項目") && (cols[1].includes("Jan-25") || cols[1].includes("2025"))) { section = "2025"; return; }
             if (line.includes("侵權資產")) { section = "Assets"; return; }
@@ -190,9 +229,7 @@
                 for (let i = 1; i <= 12; i++) {
                     if (cols[i] && cols[i].includes("(")) {
                         const m = cols[i].match(/(.*) \((\d+)\)/);
-                        if (m) {
-                            data.domains[i-1].push({ name: m[1].trim(), val: parseInt(m[2]) });
-                        }
+                        if (m) data.domains[i-1].push({ name: m[1].trim(), val: parseInt(m[2]) });
                     }
                 }
             }
@@ -200,16 +237,16 @@
         return data;
     }
 
-    function updateDashboard(data, filename) {
+    function updateDashboard(data, source) {
         globalData = data; let indices = [];
         data.detected2026.forEach((v, i) => { if(v !== 0 || data.detected2025[i] !== 0) indices.push(i); });
         if(indices.length === 0) indices = [0];
         const lastIdx = indices[indices.length - 1];
         
-        document.getElementById('statusText').textContent = `來源: ${filename} (至 ${months[lastIdx]})`;
         const sel = document.getElementById('monthSelect'); sel.innerHTML = '';
         indices.forEach(i => { let opt = document.createElement('option'); opt.value = i; opt.text = months[i]; sel.appendChild(opt); });
         sel.value = lastIdx; sel.style.display = 'block';
+        
         renderComparisonTable(data, lastIdx); renderKPI(data, lastIdx); generateInsights(data, lastIdx); renderAssetTable(data, lastIdx); renderCharts(data, lastIdx);
     }
 
@@ -239,19 +276,15 @@
         try {
             document.getElementById('insightSection').style.display = 'block';
             document.getElementById('insightMonthTitle').textContent = `【本月觀察重點 - ${months[idx]}】`;
-            document.getElementById('insightContent').textContent = '計算中...';
-
             let assetList = Object.entries(data.assets).map(([n, v]) => ({ name: n, val: v[idx] || 0 })).sort((a,b) => b.val - a.val);
             const top1 = assetList[0] || { name: '無', val: 0 }; const top2 = assetList[1] || { name: '無', val: 0 };
-            
             let cKey = Object.keys(data.types).find(k => k.includes("Counterfeit")) || "Counterfeit";
             let aKey = Object.keys(data.types).find(k => k.includes("Brand abuse")) || "Brand abuse";
             let cCount = (data.types[cKey] || Array(12).fill(0))[idx] || 0;
             let aCount = (data.types[aKey] || Array(12).fill(0))[idx] || 0;
-            
             let total = cCount + aCount; let pct = total > 0 ? ((cCount / total) * 100).toFixed(1) : 0;
             document.getElementById('insightContent').innerHTML = `<span class="highlight-text">"${top1.name}"</span> 與 <span class="highlight-text">"${top2.name}"</span> 仍為主要侵權對象，分別達 <span class="highlight-num">${top1.val.toLocaleString()}</span> 件 與 <span class="highlight-num">${top2.val.toLocaleString()}</span> 件。<br>假貨 (Counterfeit) 仍佔絕大多數 <span class="highlight-num">${cCount.toLocaleString()}</span> 件 (≈ <span class="highlight-num">${pct}%</span>)，品牌濫用 (Brand abuse) 數量極少 (僅 <span class="highlight-num">${aCount.toLocaleString()}</span> 件)。`;
-        } catch(e) { console.error("Insight Error:", e); document.getElementById('insightContent').textContent = "無法計算本月重點 (數據不足)"; }
+        } catch(e) { document.getElementById('insightContent').textContent = "數據分析中..."; }
     }
 
     function renderAssetTable(data, lastIdx) {
@@ -273,51 +306,23 @@
             ]}, options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 25, bottom: 25 } }, plugins: { legend: { position: 'bottom' }, datalabels: { font: { weight: 'bold', size: 11 }, formatter: (v) => v.toLocaleString() } } }
         });
         if(charts.rateTrend) charts.rateTrend.destroy();
-        const rateData = data.rate2026.slice(0, lastIdx+1);
         charts.rateTrend = new Chart(document.getElementById('rateTrendChart'), {
-            type: 'line', data: { labels: labels, datasets: [{ label: '成功率 %', data: rateData, borderColor: '#2a9d8f', backgroundColor: 'rgba(42, 157, 143, 0.1)', fill: true, tension: 0.3, pointRadius: 5, datalabels: { align: 'top', anchor: 'end', color: '#2a9d8f', formatter: v => v.toFixed(1)+'%' } }] },
+            type: 'line', data: { labels: labels, datasets: [{ label: '成功率 %', data: data.rate2026.slice(0, lastIdx+1), borderColor: '#2a9d8f', backgroundColor: 'rgba(42, 157, 143, 0.1)', fill: true, tension: 0.3, pointRadius: 5, datalabels: { align: 'top', anchor: 'end', color: '#2a9d8f', formatter: v => v.toFixed(1)+'%' } }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 130 } }, plugins: { legend: { display: false }, datalabels: { font: { weight: 'bold' } } } }
         });
-        
-        // 圓餅圖修改：顯示數值
         if(charts.types) charts.types.destroy();
         let cKey = Object.keys(data.types).find(k => k.includes("Counterfeit")) || "Counterfeit";
         let aKey = Object.keys(data.types).find(k => k.includes("Brand abuse")) || "Brand abuse";
-        let cVal = (data.types[cKey] || [])[lastIdx] || 0;
-        let aVal = (data.types[aKey] || [])[lastIdx] || 0;
         charts.types = new Chart(document.getElementById('typeChart'), {
-            type: 'doughnut', data: { labels: ["Counterfeit", "Brand abuse"], datasets: [{ data: [cVal, aVal], backgroundColor: [pastelColors[0], '#cbd5e1'], borderWidth: 0 }] },
-            options: { 
-                responsive: true, maintainAspectRatio: false, cutout: '70%', 
-                plugins: { 
-                    datalabels: { 
-                        display: true, color: '#fff', font: { weight: 'bold', size: 14 },
-                        formatter: (value) => value > 0 ? value.toLocaleString() : ''
-                    }, 
-                    legend: { position: 'right' } 
-                } 
-            }
+            type: 'doughnut', data: { labels: ["Counterfeit", "Brand abuse"], datasets: [{ data: [(data.types[cKey]||[])[lastIdx]||0, (data.types[aKey]||[])[lastIdx]||0], backgroundColor: [pastelColors[0], '#cbd5e1'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { datalabels: { display: true, color: '#fff', font: { weight: 'bold' }, formatter: (v) => v > 0 ? v.toLocaleString() : '' }, legend: { position: 'right' } } }
         });
-
-        // 條形圖修改：顯示數值
         if(charts.domain) charts.domain.destroy();
         const currentMonthDomains = data.domains[lastIdx] || [];
         charts.domain = new Chart(document.getElementById('domainChart'), {
             type: 'bar', data: { labels: currentMonthDomains.map(d => d.name), datasets: [{ data: currentMonthDomains.map(d => d.val), backgroundColor: '#264653', borderRadius: 6 }] },
-            options: { 
-                indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
-                plugins: { 
-                    datalabels: { 
-                        display: true, anchor: 'end', align: 'right', offset: 5, color: '#475569', font: { weight: 'bold' },
-                        formatter: (value) => value.toLocaleString()
-                    }, 
-                    legend: { display: false } 
-                },
-                layout: { padding: { right: 40 } },
-                scales: { x: { grid: { display: false } }, y: { grid: { display: false } } }
-            }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: true, anchor: 'end', align: 'right', offset: 5, color: '#475569', font: { weight: 'bold' }, formatter: (v) => v.toLocaleString() }, legend: { display: false } }, layout: { padding: { right: 40 } }, scales: { x: { grid: { display: false } }, y: { grid: { display: false } } } }
         });
-
         if(charts.assets) charts.assets.destroy();
         charts.assets = new Chart(document.getElementById('assetsChart'), {
             type: 'bar', data: { labels: labels, datasets: Object.entries(data.assets).map(([k, v], i) => ({ label: k, data: v.slice(0, lastIdx+1), backgroundColor: pastelColors[i % pastelColors.length], borderRadius: 4 })) },
