@@ -32,11 +32,12 @@
         /* KPI 樣式 */
         .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 15px; }
         .kpi-card { background: white; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .kpi-card.highlight-ytd { background: var(--primary-bg); border-color: var(--primary); }
         .kpi-num { font-size: 28px; font-weight: 700; color: var(--primary); font-family: 'Roboto', sans-serif; }
         .kpi-label { font-size: 13px; color: var(--text-light); margin-bottom: 4px; }
         
-        /* Insight 樣式 - 已移動位置 */
-        .insight-card { background: linear-gradient(135deg, #fff 0%, #fffafa 100%); border-left: 5px solid var(--primary); border-radius: 12px; padding: 20px 25px; margin-bottom: 20px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(192, 86, 91, 0.05); }
+        /* Insight 樣式 */
+        .insight-card { background: linear-gradient(135deg, #fff 0%, #fffafa 100%); border-left: 5px solid var(--primary); border-radius: 12px; padding: 20px 25px; margin-bottom: 25px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(192, 86, 91, 0.05); }
         .insight-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
         .insight-content { font-size: 15px; line-height: 1.8; color: var(--secondary); }
         
@@ -49,7 +50,7 @@
         
         .highlight-num { font-weight: 700; color: #e76f51; background: #fff1f2; padding: 0 4px; border-radius: 4px; }
         .highlight-text { font-weight: 700; color: #264653; }
-        .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
         .chart-card { background: white; border-radius: 16px; padding: 20px; height: 320px; border: 1px solid #f1f5f9; }
         .assets-container { background: white; border-radius: 16px; padding: 25px; border: 1px solid #f1f5f9; }
         .chart-area { height: 320px; margin-bottom: 20px; }
@@ -84,19 +85,24 @@
         <div class="kpi-grid">
             <div class="kpi-card"><div class="kpi-label">偵測數量 (2026)</div><div class="kpi-num" id="kpi-detect">-</div></div>
             <div class="kpi-card"><div class="kpi-label">成功下架 (2026)</div><div class="kpi-num" id="kpi-remove">-</div></div>
-            <div class="kpi-card"><div class="kpi-label">不可執行 (2026)</div><div class="kpi-num" id="kpi-unable">-</div></div>
             <div class="kpi-card"><div class="kpi-label">執行成功率 (2026)</div><div class="kpi-num" id="kpi-rate">-</div></div>
-            <div class="kpi-card"><div class="kpi-label">經濟影響 (NTD 萬元)</div><div class="kpi-num" id="kpi-impact">-</div></div>
+            <div class="kpi-card"><div class="kpi-label">經濟影響 (本月 萬元)</div><div class="kpi-num" id="kpi-impact">-</div></div>
+            <div class="kpi-card highlight-ytd"><div class="kpi-label" style="color:var(--primary); font-weight:700;">經濟影響 (YTD 累計)</div><div class="kpi-num" id="kpi-impact-ytd">-</div></div>
         </div>
 
-        <div id="insightSection" style="display:none;">
+        <div id="insightSection" style="display:none; margin-top: 25px;">
             <div class="insight-card">
                 <div class="insight-title">💡 <span id="insightMonthTitle">本月觀察重點</span></div>
                 <div class="insight-content" id="insightContent">讀取中...</div>
             </div>
+
+            <div class="split-layout">
+                <div class="section-box" style="margin:0;"><div class="section-title" style="font-size:16px;">2. 保護類型分佈</div><div class="chart-card"><canvas id="typeChart"></canvas></div></div>
+                <div class="section-box" style="margin:0;"><div class="section-title" style="font-size:16px;">3. 高風險網域排行</div><div class="chart-card"><canvas id="domainChart"></canvas></div></div>
+            </div>
         </div>
 
-        <div class="comparison-table-container" id="compTableBox" style="display:none;">
+        <div class="comparison-table-container" id="compTableBox" style="display:none; margin-top: 30px;">
             <table class="comp-table">
                 <thead>
                     <tr><th rowspan="2" class="comp-header-main">月份</th><th colspan="3">偵測數量</th><th colspan="2">成功下架</th><th colspan="3">不可執行</th><th colspan="2">執行成功率(%)</th><th colspan="3">經濟影響 (NTD 萬元)</th></tr>
@@ -105,11 +111,6 @@
                 <tbody id="compTableBody"></tbody>
             </table>
         </div>
-    </div>
-
-    <div class="split-layout">
-        <div class="section-box" style="margin:0;"><div class="section-title">2. 保護類型分佈</div><div class="chart-card"><canvas id="typeChart"></canvas></div></div>
-        <div class="section-box" style="margin:0;"><div class="section-title">3. 高風險網域排行</div><div class="chart-card"><canvas id="domainChart"></canvas></div></div>
     </div>
 
     <div class="section-box" style="margin-top: 40px;">
@@ -150,19 +151,14 @@
     let globalData = null; 
     let charts = {};
 
-    // --- 初始化：從 Google Sheets 抓取資料 ---
     window.onload = async () => {
         const statusText = document.getElementById('statusText');
         const syncIndicator = document.getElementById('syncIndicator');
-
         try {
             const response = await fetch(GOOGLE_SHEET_CSV_URL);
             if (!response.ok) throw new Error('連線失敗');
-            
             const csvText = await response.text();
             const data = parseCSV(csvText);
-            
-            // 更新 UI
             const now = new Date();
             const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
             statusText.textContent = `數據來源：雲端試算表 (最後同步 ${timeStr})`;
@@ -170,7 +166,6 @@
             syncIndicator.classList.remove('sync-loading');
             syncIndicator.style.background = "#dcfce7";
             syncIndicator.style.color = "#15803d";
-
             updateDashboard(data);
         } catch (err) {
             console.error(err);
@@ -182,7 +177,12 @@
     };
 
     document.getElementById('monthSelect').addEventListener('change', (e) => {
-        if(globalData) { const idx = parseInt(e.target.value); renderKPI(globalData, idx); generateInsights(globalData, idx); renderCharts(globalData, idx); }
+        if(globalData) { 
+            const idx = parseInt(e.target.value); 
+            renderKPI(globalData, idx); 
+            generateInsights(globalData, idx); 
+            renderCharts(globalData, idx); 
+        }
     });
 
     function splitCSVLine(line) {
@@ -249,11 +249,9 @@
         data.detected2026.forEach((v, i) => { if(v !== 0 || data.detected2025[i] !== 0) indices.push(i); });
         if(indices.length === 0) indices = [0];
         const lastIdx = indices[indices.length - 1];
-        
         const sel = document.getElementById('monthSelect'); sel.innerHTML = '';
         indices.forEach(i => { let opt = document.createElement('option'); opt.value = i; opt.text = months[i]; sel.appendChild(opt); });
         sel.value = lastIdx; sel.style.display = 'block';
-        
         renderComparisonTable(data, lastIdx); renderKPI(data, lastIdx); generateInsights(data, lastIdx); renderAssetTable(data, lastIdx); renderCharts(data, lastIdx);
     }
 
@@ -274,9 +272,12 @@
     function renderKPI(data, idx) {
         document.getElementById('kpi-detect').textContent = data.detected2026[idx].toLocaleString();
         document.getElementById('kpi-remove').textContent = data.removed2026[idx].toLocaleString();
-        document.getElementById('kpi-unable').textContent = data.unable2026[idx].toLocaleString();
         document.getElementById('kpi-rate').textContent = data.rate2026[idx].toFixed(1) + "%";
         document.getElementById('kpi-impact').textContent = data.impact2026[idx].toLocaleString();
+        
+        // 計算 YTD 累計 (從 1 月到當前選擇月份)
+        const ytdSum = data.impact2026.slice(0, idx + 1).reduce((a, b) => a + b, 0);
+        document.getElementById('kpi-impact-ytd').textContent = ytdSum.toLocaleString();
     }
 
     function generateInsights(data, idx) {
